@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Traducteur IA</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">IA</div>
+      <div class="brand-copy">
+        <div class="brand-name">Traducteur</div>
+        <div class="brand-sub">texte, voix &amp; images</div>
+      </div>
+    </div>
+
+   
+  </aside>
+
+  <main class="workspace">
+    <header class="topbar">
+      <div class="lang-toggle">
+        <span id="sourceLang" class="lang active">ENGLISH</span>
+        <span id="swapLang" class="swap">&lt;-&gt;</span>
+        <span id="targetLang" class="lang">DARIJA</span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <section class="panel card" id="textPanel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Traduction texte</p>
+            <h2>Ecrire ou coller une phrase</h2>
+            <p class="panel-copy">Traduisez instantanement vers la langue cible configuree dans votre API.</p>
+          </div>
+          
+        </div>
+
+        <div class="stack">
+          <textarea id="textInput" rows="5" placeholder="Saisissez votre texte a traduire..."></textarea>
+          <div class="action-row">
+            <button id="translateBtn">Traduire</button>
+            <button id="clearText" class="ghost">Effacer</button>
+          </div>
+        </div>
+
+        <div id="result" class="result-box muted">Aucun resultat pour le moment.</div>
+        <audio id="playback" controls class="audio-player" style="display:none"></audio>
+      </section>
+
+      <section class="panel card" id="uploadPanel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Images</p>
+            <h2>Extraire et traduire du texte</h2>
+            <p class="panel-copy">Glissez-deposez une image ou importez-la pour lancer l'OCR et la traduction.</p>
+          </div>
+        </div>
+
+        <div id="uploadZone" class="dropzone">
+          <input type="file" id="fileInput" accept="image/*" hidden>
+          <div class="doc-illus">
+            <span class="paper"></span>
+            <span class="clip"></span>
+          </div>
+          <p class="drop-title">Faites glisser le fichier ici ou <span class="link">selectionnez le fichier a telecharger</span></p>
+          <p class="drop-hint">PNG, JPG, JPEG - 10 Mo max</p>
+        </div>
+
+        <div id="uploadStatus" class="status muted">Glissez une image pour commencer.</div>
+
+        <div class="split">
+          <div class="panel-output">
+            <p class="eyebrow">Texte detecte</p>
+            <div id="imageText" class="result-box subtle"></div>
+          </div>
+          <div class="panel-output">
+            <p class="eyebrow">Traduction</p>
+            <div id="imageTranslation" class="result-box subtle"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card" id="voicePanel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Voix</p>
+            <h2>Traduction vocale</h2>
+            <p class="panel-copy">Enregistrez, faites transcrire et obtenez la traduction audio.</p>
+          </div>
+        </div>
+
+        <div class="voice-actions">
+          <button id="start">Micro / Stop</button>
+          <button id="speakDarija" class="ghost">Lire la traduction</button>
+        </div>
+
+        <div class="voice-result">
+          <div class="result-box subtle">
+            <span class="eyebrow">Reconnu</span>
+            <div id="txt-in"></div>
+          </div>
+          <div class="result-box subtle">
+            <span class="eyebrow">Traduction</span>
+            <div id="txt-out"></div>
+          </div>
+        </div>
+        <audio id="voicePlayback" controls class="audio-player" style="display:none"></audio>
+      </section>
+    </section>
+  </main>
+</div>
+
+<script src="js/script.js"></script>
+<script src="js/audio.js"></script>
+</body>
+</html>
