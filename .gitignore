@@ -1,0 +1,11 @@
+# Build outputs
+translator_arab/target/
+*.class
+*.war
+
+# Chrome extension packages
+frontendia/extension.crx
+frontendia/extension.pem
+
+# Local env
+translator_arab/.env
