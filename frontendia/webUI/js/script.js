@@ -59,6 +59,59 @@ function loadConfig() {
   updateBaseLabel(base);
 }
 
+function hasSavedCredentials() {
+  const user = (localStorage.getItem("translatorApiUser") || "").trim();
+  const pass = (localStorage.getItem("translatorApiPass") || "").trim();
+  return Boolean(user && pass);
+}
+
+function setAuthGateVisible(visible, forced = false) {
+  const gate = document.getElementById("authGate");
+  if (!gate) return;
+
+  if (visible) {
+    gate.classList.remove("hidden");
+    gate.dataset.forced = forced ? "true" : "false";
+    document.body.classList.add("auth-open");
+    return;
+  }
+
+  const wasForced = gate.dataset.forced === "true";
+  if (wasForced && !forced && !hasSavedCredentials()) {
+    return;
+  }
+
+  gate.classList.add("hidden");
+  gate.dataset.forced = "false";
+  document.body.classList.remove("auth-open");
+}
+
+function bindAuthGate() {
+  const form = document.getElementById("authForm");
+  const openBtn = document.getElementById("openAuth");
+  const cancelBtn = document.getElementById("authCancel");
+
+  if (openBtn) {
+    openBtn.addEventListener("click", () => setAuthGateVisible(true));
+  }
+
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      saveConfig();
+      setAuthGateVisible(false, true);
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => setAuthGateVisible(false));
+  }
+
+  if (!hasSavedCredentials()) {
+    saveConfig();
+  }
+}
+
 function saveLanguageState() {
   localStorage.setItem("translatorSourceLang", languageState.source);
   localStorage.setItem("translatorTargetLang", languageState.target);
@@ -102,13 +155,23 @@ function getApiBase() {
   return base.replace(/\/+$/, "");
 }
 
-function getAuthHeader() {
-  const user = defaultConfig.user;
-  const pass = defaultConfig.pass;
+function buildBasicAuthHeader(user, pass) {
   if (!user || !pass) {
     return null;
   }
   return "Basic " + btoa(user + ":" + pass);
+}
+
+function getAuthHeader() {
+  const user = readConfigValue(
+    "apiUser",
+    localStorage.getItem("translatorApiUser") || defaultConfig.user
+  );
+  const pass = readConfigValue(
+    "apiPass",
+    localStorage.getItem("translatorApiPass") || defaultConfig.pass
+  );
+  return buildBasicAuthHeader(user, pass);
 }
 
 function buildHeaders(extra = {}) {
@@ -118,6 +181,35 @@ function buildHeaders(extra = {}) {
     headers.Authorization = auth;
   }
   return headers;
+}
+
+async function fetchWithAuthRetry(url, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  const auth = getAuthHeader();
+  if (auth) {
+    headers.Authorization = auth;
+  }
+
+  const response = await fetch(url, { ...options, headers });
+  if (response.status !== 401) {
+    return response;
+  }
+
+  const fallbackAuth = buildBasicAuthHeader(defaultConfig.user, defaultConfig.pass);
+  if (!fallbackAuth || auth === fallbackAuth) {
+    return response;
+  }
+
+  localStorage.setItem("translatorApiUser", defaultConfig.user);
+  localStorage.setItem("translatorApiPass", defaultConfig.pass);
+  loadConfig();
+
+  const retryHeaders = { ...(options.headers || {}), Authorization: fallbackAuth };
+  const retryResponse = await fetch(url, { ...options, headers: retryHeaders });
+  if (retryResponse.status === 401) {
+    setAuthGateVisible(true);
+  }
+  return retryResponse;
 }
 
 function setVariant(el, variant) {
@@ -145,9 +237,9 @@ async function doTranslate() {
   setResult("Traduction en cours...", "info");
 
   try {
-    const response = await fetch(getApiBase() + "/translate", {
+    const response = await fetchWithAuthRetry(getApiBase() + "/translate", {
       method: "POST",
-      headers: buildHeaders({ "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: input,
         sourceLanguage: languageState.source,
@@ -178,9 +270,9 @@ async function doReadAloud() {
   setResult("Generation audio via le backend...", "info");
 
   try {
-    const response = await fetch(getApiBase() + "/read-aloud", {
+    const response = await fetchWithAuthRetry(getApiBase() + "/read-aloud", {
       method: "POST",
-      headers: buildHeaders({ "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: input, voice: "standard" }),
     });
 
@@ -284,9 +376,9 @@ async function translateImageBase64(imageBase64, filename, mimeType) {
   updateImageResult("", "");
 
   try {
-    const response = await fetch(getApiBase() + "/image/translate", {
+    const response = await fetchWithAuthRetry(getApiBase() + "/image/translate", {
       method: "POST",
-      headers: buildHeaders({ "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         imageBase64,
         imageMimeType: mimeType || "",
@@ -322,7 +414,6 @@ function bindButtons() {
   const readAloudBtn = document.getElementById("readAloudBtn");
   const translateBtn = document.getElementById("translateBtn");
   const clearBtn = document.getElementById("clearText");
-  const saveBtn = document.getElementById("saveCfg");
 
   if (readAloudBtn) {
     readAloudBtn.addEventListener("click", doReadAloud);
@@ -333,9 +424,6 @@ function bindButtons() {
   if (clearBtn) {
     clearBtn.addEventListener("click", clearText);
   }
-  if (saveBtn) {
-    saveBtn.addEventListener("click", () => saveConfig());
-  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -344,6 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindConfigInputs();
   bindButtons();
   initUploadZone();
+  bindAuthGate();
   const swapBtn = document.getElementById("swapLang");
   if (swapBtn) {
     swapBtn.addEventListener("click", swapLanguages);
@@ -354,3 +443,4 @@ document.addEventListener("DOMContentLoaded", () => {
 window.getApiBase = getApiBase;
 window.buildHeaders = buildHeaders;
 window.getLanguageConfig = () => ({ ...defaultLanguages });
+window.fetchWithAuthRetry = fetchWithAuthRetry;

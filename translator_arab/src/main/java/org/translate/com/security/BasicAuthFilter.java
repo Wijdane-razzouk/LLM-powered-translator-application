@@ -28,8 +28,8 @@ public class BasicAuthFilter implements ContainerRequestFilter {
     private static final String BASIC_PREFIX = "Basic ";
     private static final Set<String> PUBLIC_PATHS = Set.of("translator/ping");
 
-    private final String expectedUsername = EnvConfig.get("TRANSLATOR_USER");
-    private final String expectedPassword = EnvConfig.get("TRANSLATOR_PASSWORD");
+    private final String expectedUsername = EnvConfig.getPreferringFile("TRANSLATOR_USER");
+    private final String expectedPassword = EnvConfig.getPreferringFile("TRANSLATOR_PASSWORD");
     private final boolean authEnabled = hasText(expectedUsername) && hasText(expectedPassword);
 
     @Override

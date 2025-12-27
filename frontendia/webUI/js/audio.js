@@ -23,6 +23,14 @@ function headers(extra) {
   return extra || {};
 }
 
+async function authorizedFetch(url, options = {}) {
+  if (typeof window.fetchWithAuthRetry === "function") {
+    return window.fetchWithAuthRetry(url, options);
+  }
+  const authHeaders = headers(options.headers || {});
+  return fetch(url, { ...options, headers: authHeaders });
+}
+
 function languageConfig() {
   if (typeof getLanguageConfig === "function") {
     return getLanguageConfig();
@@ -166,9 +174,9 @@ async function sendSpeechToBackend(audioBase64, audioMimeType) {
   const targetLanguage = lang.target || "ary";
 
   try {
-    const response = await fetch(apiBase() + "/speech/translate", {
+    const response = await authorizedFetch(apiBase() + "/speech/translate", {
       method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         audioBase64,
         audioMimeType,

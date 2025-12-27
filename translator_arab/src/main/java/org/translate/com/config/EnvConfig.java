@@ -42,6 +42,18 @@ public final class EnvConfig {
         return FILE_ENV.get(key);
     }
 
+    public static String getPreferringFile(String key) {
+        String value = FILE_ENV.get(key);
+        if (value != null && !value.isBlank()) {
+            return value;
+        }
+        value = System.getenv(key);
+        if (value != null && !value.isBlank()) {
+            return value;
+        }
+        return null;
+    }
+
     public static String getOrDefault(String key, String fallback) {
         String value = get(key);
         if (value == null || value.isBlank()) {

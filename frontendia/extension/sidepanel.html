@@ -27,6 +27,10 @@
         <span id="swapLang" class="swap">&lt;-&gt;</span>
         <span id="targetLang" class="lang">DARIJA</span>
       </div>
+      <div class="topbar-actions">
+        <span class="chip">API <span id="apiBaseLabel">http://localhost:8080/api/translator</span></span>
+        <button id="openAuth" class="chip-button" type="button">Connexion</button>
+      </div>
     </header>
 
     <section class="grid">
@@ -113,6 +117,27 @@
       </section>
     </section>
   </main>
+</div>
+
+<div id="authGate" class="auth-gate hidden">
+  <div class="auth-card">
+    <div class="auth-head">
+      <h3>Connexion API</h3>
+      <p class="auth-note">Entrez vos identifiants pour acceder au backend.</p>
+    </div>
+    <form id="authForm" class="stack">
+      <label for="apiBase">API base</label>
+      <input id="apiBase" type="text" autocomplete="off" placeholder="http://localhost:8080/api/translator">
+      <label for="apiUser">Utilisateur</label>
+      <input id="apiUser" type="text" autocomplete="username" placeholder="translator">
+      <label for="apiPass">Mot de passe</label>
+      <input id="apiPass" type="password" autocomplete="current-password" placeholder="translator">
+      <div class="auth-actions">
+        <button id="saveCfg" type="submit">Se connecter</button>
+        <button id="authCancel" class="ghost" type="button">Annuler</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script src="js/script.js"></script>

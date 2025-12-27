@@ -15,12 +15,19 @@ public class LlmService {
     private final HttpClient client = HttpClient.newHttpClient();
     private final String apiKey;
     private final String model;
+    private final String localUrl;
+    private final String localModel;
+    private final boolean preferLocal;
 
     public LlmService() {
+        this.localUrl = EnvConfig.get("LOCAL_LLM_URL");
+        this.localModel = EnvConfig.getOrDefault("LOCAL_LLM_MODEL", "mistral");
+        this.preferLocal = "true".equalsIgnoreCase(EnvConfig.getOrDefault("LOCAL_LLM_PREFER", "false"));
+
         this.apiKey = EnvConfig.get("MISTRAL_API_KEY");
         this.model = EnvConfig.getOrDefault("MISTRAL_MODEL", "mistral-large-latest");
 
-        if (apiKey == null || apiKey.isBlank()) {
+        if ((localUrl == null || localUrl.isBlank()) && (apiKey == null || apiKey.isBlank())) {
             throw new IllegalStateException("MISTRAL_API_KEY is missing");
         }
     }
@@ -33,7 +40,7 @@ public class LlmService {
         if (text == null || text.isBlank()) {
             throw new IllegalArgumentException("text is required");
         }
-        return callMistral(text);
+        return translateWithFallback(text);
     }
 
     public String translate(String text, String sourceLanguage, String targetLanguage) throws Exception {
@@ -46,12 +53,39 @@ public class LlmService {
         if (!isDarija(targetLanguage)) {
             throw new IllegalArgumentException("Only Darija target is supported");
         }
-        return callMistral(text);
+        return translateWithFallback(text);
     }
 
     /* ============================
        MISTRAL AI CLOUD
        ============================ */
+
+    private String translateWithFallback(String text) throws Exception {
+        if (preferLocal && hasLocal()) {
+            return callLocalLlm(text);
+        }
+
+        if (!hasMistral()) {
+            return callLocalLlm(text);
+        }
+
+        try {
+            return callMistral(text);
+        } catch (Exception e) {
+            if (hasLocal()) {
+                return callLocalLlm(text);
+            }
+            throw e;
+        }
+    }
+
+    private boolean hasMistral() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+
+    private boolean hasLocal() {
+        return localUrl != null && !localUrl.isBlank();
+    }
 
     private String callMistral(String text) throws Exception {
 
@@ -93,6 +127,45 @@ public class LlmService {
             .getJSONObject("message")
             .getString("content")
             .trim();
+    }
+
+    /* ============================
+       LOCAL LLM (OLLAMA)
+       ============================ */
+
+    private String callLocalLlm(String text) throws Exception {
+        String prompt = buildDarijaPrompt(text);
+
+        JSONObject body = new JSONObject()
+            .put("model", localModel)
+            .put("prompt", prompt)
+            .put("stream", false);
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(new URI(localUrl))
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
+            .build();
+
+        HttpResponse<String> response;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            throw new RuntimeException("Local LLM call failed: " + e, e);
+        }
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Local LLM API error: " + response.body());
+        }
+
+        JSONObject json = new JSONObject(response.body());
+        if (json.has("response")) {
+            return json.getString("response").trim();
+        }
+        if (json.has("text")) {
+            return json.getString("text").trim();
+        }
+        throw new RuntimeException("Local LLM response missing content field");
     }
 
     /* ============================
