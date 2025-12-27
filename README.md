@@ -14,8 +14,7 @@ The backend exposes a REST API at `http://localhost:8080/api/translator`.
 - Text: Mistral LLM translation
 - Voice: Whisper STT -> Mistral LLM -> TTS
 - Image: Tesseract OCR -> Mistral LLM (Gemini Vision OCR fallback if needed)
-
-![alt text](<Capture d'écran 2025-12-23 190947-1.png>)
+![alt text](<Untitled diagram-2025-12-27-124413.png>)
 ## Architecture (detailed)
 
 ### Flow
